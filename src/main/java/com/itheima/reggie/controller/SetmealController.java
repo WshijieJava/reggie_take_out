@@ -126,9 +126,7 @@ public class SetmealController {
             @ApiParam(name = "ids",required = true, value = "套餐id")
             @RequestParam List<Long> ids) {
         log.info("ids:{}", ids);
-
         setmealService.removeWithDish(ids);
-
         return R.success("套餐数据删除成功");
     }
 

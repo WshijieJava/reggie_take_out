@@ -4,7 +4,9 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.itheima.reggie.common.BaseContext;
 import com.itheima.reggie.common.R;
-import com.itheima.reggie.entity.*;
+import com.itheima.reggie.entity.OrderDetail;
+import com.itheima.reggie.entity.Orders;
+import com.itheima.reggie.entity.ShoppingCart;
 import com.itheima.reggie.service.*;
 import io.swagger.annotations.*;
 import lombok.extern.slf4j.Slf4j;
@@ -13,8 +15,9 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpSession;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * 订单
@@ -28,16 +31,16 @@ public class OrderController {
     @Autowired
     private OrderService orderService;
     @Autowired
-    DishService dishService;
+    private DishService dishService;
 
     @Autowired
-    ShoppingCartService shoppingCartService;
+    private ShoppingCartService shoppingCartService;
 
     @Autowired
-    OrderDetailService orderDetailService;
+    private OrderDetailService orderDetailService;
 
     @Autowired
-    SetmealService setmealService;
+    private SetmealService setmealService;
 
     /**
      * 用户下单
@@ -115,75 +118,58 @@ public class OrderController {
 
     /**
      * 再来一单
+     * 前端点击再来一单是直接跳转到购物车的，所以为了避免数据有问题，再跳转之前我们需要把购物车的数据给清除
+     * ①通过orderId获取订单明细
+     * ②把订单明细的数据的数据塞到购物车表中，不过在此之前要先把购物车表中的数据给清除(清除的是当前登录用户的购物车表中的数据)，
+     * 不然就会导致再来一单的数据有问题；
      */
     @ApiOperation("再来一单")
     @PostMapping("/again")
-    public R<String> again(
+    public R<String> againSubmit(
             @ApiParam(name = "orders", required = true, value = "历史订单")
-            @RequestBody Orders orders) {
-        log.info(orders.toString());
-        //设置用户id 指定当前是哪个用户的购物车数据
-        Long currentId = BaseContext.getCurrentId();
-        //得到订单id
-        Long ordersId = orders.getId();
-        LambdaQueryWrapper<Orders> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(Orders::getId, ordersId);
-        //根据订单id得到订单元素
-        Orders one = orderService.getOne(queryWrapper);
-        //得到订单表中的number 也就是订单明细表中的order_id
-        String number = one.getNumber();
+            @RequestBody Map<String, String> map) {
+        String ids = map.get("id");
 
-        LambdaQueryWrapper<OrderDetail> lambdaQueryWrapper = new LambdaQueryWrapper<>();
-        lambdaQueryWrapper.eq(OrderDetail::getOrderId, number);
-        //根据订单明细表的order_id得到订单明细集合
-        List<OrderDetail> orderDetails = orderDetailService.list(lambdaQueryWrapper);
-        //新建购物车集合
-        List<ShoppingCart> shoppingCarts = new ArrayList<>();
-        //通过用户id把原来的购物车给清空
+        long id = Long.parseLong(ids);
+
+        LambdaQueryWrapper<OrderDetail> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(OrderDetail::getOrderId, id);
+        //获取该订单对应的所有的订单明细表
+        List<OrderDetail> orderDetailList = orderDetailService.list(queryWrapper);
+
+        //通过用户id把原来购物车给清空
         LambdaQueryWrapper<ShoppingCart> shoppingCartLambdaQueryWrapper = new LambdaQueryWrapper<>();
         shoppingCartLambdaQueryWrapper.eq(ShoppingCart::getUserId, BaseContext.getCurrentId());
         shoppingCartService.remove(shoppingCartLambdaQueryWrapper);
-        //遍历订单明细集合,将集合中的元素加入购物车集合
-        for (OrderDetail orderDetail : orderDetails) {
+
+        //获取用户id
+        Long userId = BaseContext.getCurrentId();
+        List<ShoppingCart> shoppingCartList = orderDetailList.stream().map((item) -> {
+            //把从order表中和order_details表中获取到的数据赋值给这个购物车对象
             ShoppingCart shoppingCart = new ShoppingCart();
-            //得到菜品id或套餐id
-            Long dishId = orderDetail.getDishId();
-            Long setmealId = orderDetail.getSetmealId();
-            //添加购物车部分属性
-            shoppingCart.setUserId(currentId);
-            shoppingCart.setDishFlavor(orderDetail.getDishFlavor());
-            shoppingCart.setNumber(orderDetail.getNumber());
-            shoppingCart.setAmount(orderDetail.getAmount());
-            shoppingCart.setCreateTime(LocalDateTime.now());
+            shoppingCart.setUserId(userId);
+            shoppingCart.setImage(item.getImage());
+            Long dishId = item.getDishId();
+            Long setmealId = item.getSetmealId();
             if (dishId != null) {
-                //订单明细元素中是菜品
-                LambdaQueryWrapper<Dish> dishLambdaQueryWrapper = new LambdaQueryWrapper<>();
-                dishLambdaQueryWrapper.eq(Dish::getId, dishId);
-                //根据订单明细集合中的单个元素获得单个菜品元素
-                Dish dishone = dishService.getOne(dishLambdaQueryWrapper);
-                //根据菜品信息添加购物车信息
+                //如果是菜品那就添加菜品的查询条件
                 shoppingCart.setDishId(dishId);
-                shoppingCart.setName(dishone.getName());
-                shoppingCart.setImage(dishone.getImage());
-                //调用保存购物车方法
-                shoppingCarts.add(shoppingCart);
-            } else if (setmealId != null) {
-                //订单明细元素中是套餐
-                LambdaQueryWrapper<Setmeal> setmealLambdaQueryWrapper = new LambdaQueryWrapper<>();
-                setmealLambdaQueryWrapper.eq(Setmeal::getId, setmealId);
-                //根据订单明细集合中的单个元素获得单个套餐元素
-                Setmeal setmealone = setmealService.getOne(setmealLambdaQueryWrapper);
-                //根据套餐信息添加购物车信息
+            } else {
+                //添加到购物车的是套餐
                 shoppingCart.setSetmealId(setmealId);
-                shoppingCart.setName(setmealone.getName());
-                shoppingCart.setImage(setmealone.getImage());
-                //调用保存购物车方法
-                shoppingCarts.add(shoppingCart);
             }
-        }
-        shoppingCartService.saveBatch(shoppingCarts);
+            shoppingCart.setName(item.getName());
+            shoppingCart.setDishFlavor(item.getDishFlavor());
+            shoppingCart.setNumber(item.getNumber());
+            shoppingCart.setAmount(item.getAmount());
+            shoppingCart.setCreateTime(LocalDateTime.now());
+            return shoppingCart;
+        }).collect(Collectors.toList());
+
+        //把携带数据的购物车批量插入购物车表  这个批量保存的方法要使用熟练！！！
+        shoppingCartService.saveBatch(shoppingCartList);
+
         return R.success("操作成功");
     }
-
 
 }

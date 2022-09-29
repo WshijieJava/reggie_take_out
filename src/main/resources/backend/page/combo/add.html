@@ -51,7 +51,7 @@
         width: 777px;
       }
       .addDish .addBut {
-        background: #ffc200;
+        background: rgba(2, 160, 255, 0.5);
         display: inline-block;
         padding: 0px 20px;
         border-radius: 3px;
@@ -88,8 +88,8 @@
         cursor: pointer;
       }
       .addDishCon .leftCont .act {
-        border-color: #FFC200 !important;
-        color: #FFC200 !important;
+        border-color:rgba(2, 160, 255, 0.5) !important;
+        color: rgba(2, 160, 255, 0.5) !important;
       }
       .addDishCon .leftCont .tabList {
         flex: 1;
@@ -185,7 +185,7 @@
           </div>
           <div>
             <el-form-item label="套餐价格:" prop="price">
-              <el-input v-model="ruleForm.price" placeholder="请设置合集价格" />
+              <el-input v-model="ruleForm.price" placeholder="请设置套餐价格" />
             </el-form-item>
           </div>
           <div>
@@ -254,7 +254,7 @@
                 class="continue"
                 @click="submitForm('ruleForm', true)"
               >
-                保存并继续添加合集
+                保存并继续添加套餐
               </el-button>
             </el-form-item>
           </div>

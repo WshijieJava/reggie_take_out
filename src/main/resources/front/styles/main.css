@@ -24,7 +24,7 @@
   width: 345rem;
   height: 118rem;
   opacity: 1;
-  background: #ffffff;
+  background: rgb(255 255 255 / 80%);
   border-radius: 6rem;
   box-shadow: 0rem 2rem 5rem 0rem rgba(69, 69, 69, 0.1);
   position: absolute;
@@ -41,7 +41,7 @@
   width: 39rem;
   height: 39rem;
   opacity: 1;
-  background: #333333;
+  background: #ffffff00;
   border-radius: 6rem;
   margin-right: 10rem;
 }
@@ -64,7 +64,7 @@
   font-family: PingFangSC, PingFangSC-Regular;
   font-weight: 400;
   text-align: left;
-  color: #333333;
+  color: #000000;
   margin-bottom: 10rem;
 }
 
@@ -89,7 +89,7 @@
   font-family: PingFangSC, PingFangSC-Regular;
   font-weight: 400;
   text-align: left;
-  color: #9b9b9b;
+  color: #000000;
   line-height: 17rem;
   margin-right: 18rem;
   padding-top: 9rem;
