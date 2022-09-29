@@ -161,4 +161,12 @@ public class SetmealController {
 
         return b ? R.success("操作成功") : R.error("操作失败");
     }
+
+
+    @GetMapping("/{id}")
+    public R<Setmeal> getSetmealById(@PathVariable Long id){
+        System.out.println(id);
+        Setmeal setmeal = setmealService.getById(id);
+        return R.success(setmeal);
+    }
 }
