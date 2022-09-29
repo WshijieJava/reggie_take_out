@@ -9,6 +9,7 @@ import com.itheima.reggie.entity.Setmeal;
 import com.itheima.reggie.service.CategoryService;
 import com.itheima.reggie.service.SetmealDishService;
 import com.itheima.reggie.service.SetmealService;
+import io.swagger.annotations.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,6 +24,7 @@ import java.util.stream.Collectors;
 /**
  * 套餐管理
  */
+@Api(tags = "套餐管理接口")
 @RestController
 @RequestMapping("/setmeal")
 @Slf4j
@@ -45,9 +47,12 @@ public class SetmealController {
      * @param setmealDto
      * @return
      */
+    @ApiOperation(value = "新增套餐")
     @PostMapping
     @CacheEvict(value = "setmealCache", allEntries = true)//清除setmealCache名称下，所有的缓存数据
-    public R<String> save(@RequestBody SetmealDto setmealDto) {
+    public R<String> save(
+            @ApiParam(name = "setmealDto",required = true,value = "套餐信息")
+            @RequestBody SetmealDto setmealDto) {
         log.info("套餐信息：{}", setmealDto);
 
         setmealService.saveWithDish(setmealDto);
@@ -63,7 +68,13 @@ public class SetmealController {
      * @param name
      * @return
      */
+    @ApiOperation(value = "套餐分页查询")
     @GetMapping("/page")
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "page",required = true,value = "页号"),
+            @ApiImplicitParam(name = "pageSize",required = true,value = "页面大小"),
+            @ApiImplicitParam(name = "name", required = true, value = "查询信息")
+    })
     public R<Page> page(int page, int pageSize, String name) {
         //分页构造器对象
         Page<Setmeal> pageInfo = new Page<>(page, pageSize);
@@ -108,9 +119,12 @@ public class SetmealController {
      * @param ids
      * @return
      */
+    @ApiOperation(value = "删除套餐")
     @DeleteMapping
     @CacheEvict(value = "setmealCache", allEntries = true)//清除setmealCache名称下，所有的缓存数据
-    public R<String> delete(@RequestParam List<Long> ids) {
+    public R<String> delete(
+            @ApiParam(name = "ids",required = true, value = "套餐id")
+            @RequestParam List<Long> ids) {
         log.info("ids:{}", ids);
 
         setmealService.removeWithDish(ids);
@@ -126,8 +140,11 @@ public class SetmealController {
      * @return
      */
     @GetMapping("/list")
+    @ApiOperation(value = "根据条件查询套餐数据")
     @Cacheable(value = "setmealCache", key = "#setmeal.categoryId+'_'+#setmeal.status")
-    public R<List<Setmeal>> list(Setmeal setmeal) {
+    public R<List<Setmeal>> list(
+            @ApiParam(name = "setmeal", required = true, value = "查询条件")
+            Setmeal setmeal) {
         LambdaQueryWrapper<Setmeal> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(setmeal.getCategoryId() != null, Setmeal::getCategoryId, setmeal.getCategoryId());
         queryWrapper.eq(setmeal.getStatus() != null, Setmeal::getStatus, setmeal.getStatus());
@@ -145,8 +162,14 @@ public class SetmealController {
      * @param ids
      * @return
      */
+    @ApiOperation(value = "查询套餐状态")
     @PostMapping("/status/{status}")
-    public R<String> updateStatus(@PathVariable Integer status, @RequestParam("ids") List<Long> ids) {
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "status",required = true,value = "套餐状态"),
+            @ApiImplicitParam(name = "ids", required = true,value = "套餐id")
+    })
+    public R<String> updateStatus(
+            @PathVariable Integer status, @RequestParam("ids") List<Long> ids) {
 
         log.info("updateStatus：ids：{},status:{}", ids, status);
         //1. 通过传过来的ids 获得所有的菜品
@@ -164,7 +187,10 @@ public class SetmealController {
 
 
     @GetMapping("/{id}")
-    public R<Setmeal> getSetmealById(@PathVariable Long id){
+    @ApiOperation(value = "获取套餐")
+    public R<Setmeal> getSetmealById(
+            @ApiParam(name = "id",required = true,value = "套餐id")
+            @PathVariable Long id){
         System.out.println(id);
         Setmeal setmeal = setmealService.getById(id);
         return R.success(setmeal);

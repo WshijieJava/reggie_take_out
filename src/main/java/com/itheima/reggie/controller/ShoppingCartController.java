@@ -5,6 +5,9 @@ import com.itheima.reggie.common.BaseContext;
 import com.itheima.reggie.common.R;
 import com.itheima.reggie.entity.ShoppingCart;
 import com.itheima.reggie.service.ShoppingCartService;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -15,6 +18,7 @@ import java.util.List;
 /**
  * 购物车
  */
+@Api(tags = "购物车接口")
 @Slf4j
 @RestController
 @RequestMapping("/shoppingCart")
@@ -28,8 +32,11 @@ public class ShoppingCartController {
      * @param shoppingCart
      * @return
      */
+    @ApiOperation(value = "添加购物车")
     @PostMapping("/add")
-    public R<ShoppingCart> add(@RequestBody ShoppingCart shoppingCart){
+    public R<ShoppingCart> add(
+            @ApiParam(name = "shoppingCart", required = true, value = "购物车信息")
+            @RequestBody ShoppingCart shoppingCart){
         log.info("购物车数据:{}",shoppingCart);
 
         //设置用户id，指定当前是哪个用户的购物车数据
@@ -74,6 +81,7 @@ public class ShoppingCartController {
      * 查看购物车
      * @return
      */
+    @ApiOperation(value = "查看购物车")
     @GetMapping("/list")
     public R<List<ShoppingCart>> list(){
         log.info("查看购物车...");
@@ -91,6 +99,7 @@ public class ShoppingCartController {
      * 清空购物车
      * @return
      */
+    @ApiOperation(value = "清空购物车")
     @DeleteMapping("/clean")
     public R<String> clean(){
         //SQL:delete from shopping_cart where user_id = ?
@@ -104,8 +113,11 @@ public class ShoppingCartController {
     }
 
 
+    @ApiOperation(value = "移除购物车内的商品")
     @PostMapping("/sub")
-    public R<ShoppingCart> sub(@RequestBody ShoppingCart shoppingCart) {
+    public R<ShoppingCart> sub(
+            @ApiParam(name = "shoppingCart", required = true, value = "购物车信息")
+            @RequestBody ShoppingCart shoppingCart) {
         log.info("购物车数据:{}", shoppingCart);
 
         //设置用户id，指定当前是哪个用户的购物车数据

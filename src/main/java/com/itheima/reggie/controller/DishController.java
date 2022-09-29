@@ -10,6 +10,7 @@ import com.itheima.reggie.entity.DishFlavor;
 import com.itheima.reggie.service.CategoryService;
 import com.itheima.reggie.service.DishFlavorService;
 import com.itheima.reggie.service.DishService;
+import io.swagger.annotations.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,11 +21,12 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * 菜品管理
+ * 书籍管理
  */
 @RestController
 @RequestMapping("/dish")
 @Slf4j
+@Api(tags = "书籍管理接口")
 public class DishController {
     @Autowired
     private DishService dishService;
@@ -41,7 +43,10 @@ public class DishController {
      * @return
      */
     @PostMapping
-    public R<String> save(@RequestBody DishDto dishDto) {
+    @ApiOperation(value = "新增书籍")
+    public R<String> save(
+            @ApiParam(name = "dishDto",required = true,value = "书籍信息")
+            @RequestBody DishDto dishDto) {
         log.info(dishDto.toString());
         dishService.saveWithFlavor(dishDto);
         return R.success("新增菜品成功");
@@ -54,6 +59,11 @@ public class DishController {
      * @param name
      * @return
      */
+    @ApiOperation(value = "书籍分页查询")
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "page", required = true, value = "页号"),
+            @ApiImplicitParam(name = "pageSize", required = true, value = "页面大小")
+    })
     @GetMapping("/page")
     public R<Page> page(int page, int pageSize, String name) {
 
@@ -99,12 +109,15 @@ public class DishController {
 
 
     /**
-     * 根据id查询菜品信息和对应的口味信息
+     * 根据id查询书籍信息和对应的标签信息
      * @param id
      * @return
      */
+    @ApiOperation(value = "据id查询书籍信息和对应的标签信息")
     @GetMapping("/{id}")
-    public R<DishDto> get(@PathVariable Long id) {
+    public R<DishDto> get(
+            @ApiParam(name = "id",required = true,value = "书籍id")
+            @PathVariable Long id) {
 
         DishDto dishDto = dishService.getByIdWithFlavor(id);
 
@@ -113,12 +126,15 @@ public class DishController {
 
 
     /**
-     * 修改菜品
+     * 修改书籍信息
      * @param dishDto
      * @return
      */
     @PutMapping
-    public R<String> update(@RequestBody DishDto dishDto) {
+    @ApiOperation(value = "修改书籍信息")
+    public R<String> update(
+            @ApiParam(name = "dishDto", required = true, value = "书籍信息")
+            @RequestBody DishDto dishDto) {
         log.info(dishDto.toString());
         dishService.updateWithFlavor(dishDto);
         return R.success("修改菜品成功");
@@ -147,9 +163,15 @@ public class DishController {
     }*/
 
 
+    @ApiOperation("根据分类查询相关书籍信息")
+//    @ApiImplicitParams({
+//            @ApiImplicitParam(name = "dish", required = true, value = "分类信息")
+//    })
     @GetMapping("/list")
     @Cacheable(value = "dishCache",key = "#dish.categoryId + '_' + #dish.status")
-    public R<List<DishDto>> list(Dish dish) {
+    public R<List<DishDto>> list(
+            @ApiParam(name = "dish", required = true, value = "分类信息")
+            Dish dish) {
         //构造查询条件
         LambdaQueryWrapper<Dish> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(dish.getCategoryId() != null, Dish::getCategoryId, dish.getCategoryId());
@@ -189,6 +211,10 @@ public class DishController {
     }
 
 
+    @ApiOperation(value = "根据id修改书籍状态")
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "status", required = true, value = "书籍状态")
+    })
     @PostMapping("/status/{status}")
     public R<String> updateStatus(@PathVariable("status") Integer status, @RequestParam("ids") List<Long> ids) {
         log.info("status:{},停售起售的ids：{}", status, ids);
@@ -219,6 +245,10 @@ public class DishController {
 
 
     //方式 2：逻辑删除，数据库不删除，只改变状态
+    @ApiOperation(value = "根据id删除书籍")
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "ids", required = true, value = "根据id对书籍进行逻辑删除")
+    })
     @DeleteMapping
     public R<String> delete(@RequestParam("ids") List<Long> ids) {
         log.info("删除的ids：{}", ids);

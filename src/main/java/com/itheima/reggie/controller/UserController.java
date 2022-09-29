@@ -5,6 +5,7 @@ import com.itheima.reggie.common.R;
 import com.itheima.reggie.entity.User;
 import com.itheima.reggie.service.UserService;
 import com.itheima.reggie.utils.ValidateCodeUtils;
+import io.swagger.annotations.*;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 import javax.servlet.http.HttpSession;
 import java.util.Map;
 
+@Api(tags = "用户管理接口")
 @RestController
 @RequestMapping("/user")
 @Slf4j
@@ -29,6 +31,10 @@ public class UserController {
      * @param user
      * @return
      */
+    @ApiOperation(value = "发送手机短信验证码")
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "user", required = true, value = "用户信息")
+    })
     @PostMapping("/sendMsg")
     public R<String> sendMsg(@RequestBody User user, HttpSession session){
         //获取手机号
@@ -57,8 +63,11 @@ public class UserController {
      * @param session
      * @return
      */
+    @ApiOperation(value = "移动端用户登录")
     @PostMapping("/login")
-    public R<User> login(@RequestBody Map map, HttpSession session){
+    public R<User> login(
+            @ApiParam(name = "map", required = true, value = "登入信息")
+            @RequestBody Map map, HttpSession session){
         log.info(map.toString());
 
         //获取手机号
@@ -91,6 +100,7 @@ public class UserController {
         return R.error("登录失败");
     }
 
+    @ApiOperation(value = "用户退出")
     @PostMapping("/loginout")
     public R<String> loginout(HttpSession session){
         session.removeAttribute("user");

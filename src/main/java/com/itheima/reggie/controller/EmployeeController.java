@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.itheima.reggie.common.R;
 import com.itheima.reggie.entity.Employee;
 import com.itheima.reggie.service.EmployeeService;
+import io.swagger.annotations.*;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
 
+@Api(tags = "商家管理接口")
 @Slf4j
 @RestController
 @RequestMapping("/employee")
@@ -27,6 +29,10 @@ public class EmployeeController {
      * @param employee
      * @return
      */
+    @ApiOperation(value = "商家登入接口")
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "employee", required = true,value = "用户登入信息")
+    })
     @PostMapping("/login")
     public R<Employee> login(HttpServletRequest request, @RequestBody Employee employee){
 
@@ -64,6 +70,7 @@ public class EmployeeController {
      * @param request
      * @return
      */
+    @ApiOperation(value = "商家退出接口")
     @PostMapping("/logout")
     public R<String> logout(HttpServletRequest request){
         //清理Session中保存的当前登录员工的id
@@ -76,8 +83,11 @@ public class EmployeeController {
      * @param employee
      * @return
      */
+    @ApiOperation(value = "商家注册接口")
     @PostMapping
-    public R<String> save(HttpServletRequest request,@RequestBody Employee employee){
+    public R<String> save(HttpServletRequest request,
+                          @ApiParam(name = "employee", required = true, value = "商家信息")
+                          @RequestBody Employee employee){
         log.info("新增员工，员工信息：{}",employee.toString());
 
         //设置初始密码123456，需要进行md5加密处理
@@ -104,6 +114,12 @@ public class EmployeeController {
      * @param name
      * @return
      */
+    @ApiOperation(value = "分页查询商家")
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "page", required = true, value = "当前页号"),
+            @ApiImplicitParam(name = "pageSize", required = true, value = "页面大小"),
+            @ApiImplicitParam(name = "name", required = true, value = "搜索条件")
+    })
     @GetMapping("/page")
     public R<Page> page(int page,int pageSize,String name){
         log.info("page = {},pageSize = {},name = {}" ,page,pageSize,name);
@@ -129,8 +145,11 @@ public class EmployeeController {
      * @param employee
      * @return
      */
+    @ApiOperation(value = "根据id修改商家信息")
     @PutMapping
-    public R<String> update(HttpServletRequest request,@RequestBody Employee employee){
+    public R<String> update(HttpServletRequest request,
+                            @ApiParam(name = "employee", required = true, value = "用户信息")
+                            @RequestBody Employee employee){
         log.info(employee.toString());
 
         long id = Thread.currentThread().getId();
@@ -148,8 +167,11 @@ public class EmployeeController {
      * @param id
      * @return
      */
+    @ApiOperation(value = "根据id查询商家信息")
     @GetMapping("/{id}")
-    public R<Employee> getById(@PathVariable Long id){
+    public R<Employee> getById(
+            @ApiParam(name = "id", required = true,value = "用户id")
+            @PathVariable Long id){
         log.info("根据id查询员工信息...");
         Employee employee = employeeService.getById(id);
         if(employee != null){
