@@ -184,13 +184,35 @@ public class SetmealController {
     }
 
 
+//    @GetMapping("/{id}")
+//    @ApiOperation(value = "获取套餐")
+//    public R<Setmeal> getSetmealById(
+//            @ApiParam(name = "id",required = true,value = "套餐id")
+//            @PathVariable Long id){
+//        System.out.println(id);
+//        Setmeal setmeal = setmealService.getById(id);
+//        return R.success(setmeal);
+//    }
+
+    /**
+     * 根据id查询套餐信息
+     *(套餐信息的回显)
+     * @param id
+     * @return
+     */
     @GetMapping("/{id}")
-    @ApiOperation(value = "获取套餐")
-    public R<Setmeal> getSetmealById(
-            @ApiParam(name = "id",required = true,value = "套餐id")
-            @PathVariable Long id){
-        System.out.println(id);
-        Setmeal setmeal = setmealService.getById(id);
-        return R.success(setmeal);
+    public R<SetmealDto> getById(@PathVariable Long id) {
+        log.info("根据id查询套餐信息:{}", id);
+        // 调用service执行查询。、
+        SetmealDto setmealDto = setmealService.getByIdWithDish(id);
+        return R.success(setmealDto);
     }
+
+    @PutMapping()
+    public R<String> update(@RequestBody SetmealDto setmealDto){
+        setmealService.updateWithFlavor(setmealDto);
+        return R.success("修改套餐成功");
+    }
+
+
 }
