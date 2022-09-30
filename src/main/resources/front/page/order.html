@@ -111,18 +111,18 @@
                     }
                     const res = await orderPagingApi(this.paging)
                     if(res.code === 1){
-                        // this.orderList=[]
+                        this.orderList=[]
                         this.orderList.push(...res.data.records)
-                        // let records = res.data.records
-                        // if(records && Array.isArray(records)){
-                        //     records.forEach(item=>{
-                        //         let number = 0
-                        //         item.orderDetails.forEach(ele=>{
-                        //             number += ele.number
-                        //         })
-                        //         item.sumNum = number
-                        //     })
-                        // }
+                        let records = res.data.records
+                        if(records && Array.isArray(records)){
+                            records.forEach(item=>{
+                                let number = 0
+                                item.orderDetails.forEach(ele=>{
+                                    number += ele.number
+                                })
+                                item.sumNum = number
+                            })
+                        }
                         this.loading = false;
                         if(this.paging.page >= res.data.pages){
                             this.finished = true;

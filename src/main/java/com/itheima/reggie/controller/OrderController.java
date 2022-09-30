@@ -4,16 +4,17 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.itheima.reggie.common.BaseContext;
 import com.itheima.reggie.common.R;
+import com.itheima.reggie.dto.OrderDto;
 import com.itheima.reggie.entity.OrderDetail;
 import com.itheima.reggie.entity.Orders;
 import com.itheima.reggie.entity.ShoppingCart;
 import com.itheima.reggie.service.*;
 import io.swagger.annotations.*;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import javax.servlet.http.HttpSession;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -67,20 +68,23 @@ public class OrderController {
             @ApiImplicitParam(name = "beginTime", required = true, value = "开始时间"),
             @ApiImplicitParam(name = "endTime", required = true, value = "结束时间")
     })
-    public R<Page<Orders>> page(Integer page, Integer pageSize, String number, String beginTime, String endTime) {
-        log.info("page:{},pageSize:{},number:{},beginTime:{},endTime:{}", page, pageSize, number, beginTime, endTime);
+    public R<Page<Orders>> page(@RequestParam("page") int page, int pageSize, String number, String beginTime, String endTime) {
+        log.info("page = {},pageSize = {},number={},beginTime={},endTime={}", page, pageSize, number, beginTime, endTime);
 
+        //构建分页条件
         Page<Orders> ordersPage = new Page<>(page, pageSize);
-
+        //模糊搜索
         LambdaQueryWrapper<Orders> wrapper = new LambdaQueryWrapper<>();
-        //模糊匹配订单号
         wrapper.like(number != null, Orders::getNumber, number);
-        //匹配订单时间
-        wrapper.between(beginTime != null, Orders::getOrderTime, beginTime, endTime);
+        wrapper.ge(beginTime != null, Orders::getOrderTime, beginTime);
+        wrapper.le(endTime != null, Orders::getOrderTime, endTime);
 
-        orderService.page(ordersPage);
+        //执行查询
+        orderService.page(ordersPage, wrapper);
+
         return R.success(ordersPage);
     }
+
 
 
     @ApiOperation(value = "订单派送")
@@ -93,27 +97,69 @@ public class OrderController {
     }
 
 
+    //抽离的一个方法，通过订单id查询订单明细，得到一个订单明细的集合
+    //这里抽离出来是为了避免在stream中遍历的时候直接使用构造条件来查询导致eq叠加，从而导致后面查询的数据都是null
+    public List<OrderDetail> getOrderDetailListByOrderId(Long orderId){
+        LambdaQueryWrapper<OrderDetail> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(OrderDetail::getOrderId, orderId);
+        List<OrderDetail> orderDetailList = orderDetailService.list(queryWrapper);
+        return orderDetailList;
+    }
+
     @GetMapping("/userPage")
     @ApiOperation("用户订单详情页")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "page", required = true, value = "当前页号"),
             @ApiImplicitParam(name = "pageSize", required = true, value = "页面大小")
     })
-    public R<Page<Orders>> page(@RequestParam("page") int page, int pageSize, HttpSession session) {
-        log.info("page = {},pageSize = {}", page, pageSize);
+    public R<Page> page(int page, int pageSize){
+        //分页构造器对象
+        Page<Orders> pageInfo = new Page<>(page,pageSize);
+        Page<OrderDto> pageDto = new Page<>(page,pageSize);
+        //构造条件查询对象
+        LambdaQueryWrapper<Orders> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(Orders::getUserId,BaseContext.getCurrentId());
+        //这里是直接把当前用户分页的全部结果查询出来，要添加用户id作为查询条件，否则会出现用户可以查询到其他用户的订单情况
+        //添加排序条件，根据更新时间降序排列
+        queryWrapper.orderByDesc(Orders::getOrderTime);
+        orderService.page(pageInfo,queryWrapper);
 
-        Long userId = (Long) session.getAttribute("user");
+        //通过OrderId查询对应的OrderDetail
+        LambdaQueryWrapper<OrderDetail> queryWrapper2 = new LambdaQueryWrapper<>();
 
-        Page<Orders> OrderPage = new Page<>(page, pageSize);
+        //对OrderDto进行需要的属性赋值
+        List<Orders> records = pageInfo.getRecords();
+        List<OrderDto> orderDtoList = records.stream().map((item) ->{
+            OrderDto orderDto = new OrderDto();
+            //此时的orderDto对象里面orderDetails属性还是空 下面准备为它赋值
+            Long orderId = item.getId();//获取订单id
+            List<OrderDetail> orderDetailList = this.getOrderDetailListByOrderId(orderId);
+            BeanUtils.copyProperties(item,orderDto);
+            //对orderDto进行OrderDetails属性的赋值
+            orderDto.setOrderDetails(orderDetailList);
+            return orderDto;
+        }).collect(Collectors.toList());
 
-        LambdaQueryWrapper<Orders> wrapper = new LambdaQueryWrapper<>();
-
-        wrapper.eq(Orders::getUserId, userId);
-        wrapper.orderByDesc(Orders::getOrderTime);
-
-        orderService.page(OrderPage, wrapper);
-        return R.success(OrderPage);
+        //使用dto的分页有点难度.....需要重点掌握
+        BeanUtils.copyProperties(pageInfo,pageDto,"records");
+        pageDto.setRecords(orderDtoList);
+        return R.success(pageDto);
     }
+//    public R<Page<Orders>> page(@RequestParam("page") int page, int pageSize, HttpSession session) {
+//        log.info("page = {},pageSize = {}", page, pageSize);
+//
+//        Long userId = (Long) session.getAttribute("user");
+//
+//        Page<Orders> OrderPage = new Page<>(page, pageSize);
+//
+//        LambdaQueryWrapper<Orders> wrapper = new LambdaQueryWrapper<>();
+//
+//        wrapper.eq(Orders::getUserId, userId);
+//        wrapper.orderByDesc(Orders::getOrderTime);
+//
+//        orderService.page(OrderPage, wrapper);
+//        return R.success(OrderPage);
+//    }
 
 
     /**
